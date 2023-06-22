@@ -54,7 +54,8 @@ WebVideoServer::WebVideoServer(rclcpp::Node::SharedPtr &nh, rclcpp::Node::Shared
         async_web_server_cpp::HttpReply::stock_reply(async_web_server_cpp::HttpReply::not_found))
 {
   rclcpp::Parameter parameter;
-  if (private_nh->get_parameter("port", parameter)) {
+  nh->declare_parameter("port", rclcpp::PARAMETER_INTEGER);
+  if (nh->get_parameter("port", parameter)) {
     port_ = parameter.as_int();
   } else {
     port_ = 8080;
