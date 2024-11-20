@@ -42,6 +42,7 @@ extern "C"
 #include <libavutil/imgutils.h>
 }
 
+#include <chrono>
 #include <memory>
 #include <string>
 
@@ -66,7 +67,7 @@ public:
 
 protected:
   virtual void initializeEncoder();
-  virtual void sendImage(const cv::Mat &, const rclcpp::Time & time);
+  virtual void sendImage(const cv::Mat &, const std::chrono::steady_clock::time_point & time);
   virtual void initialize(const cv::Mat &);
   AVFormatContext * format_context_;
   const AVCodec * codec_;
@@ -78,8 +79,9 @@ protected:
 private:
   AVFrame * frame_;
   struct SwsContext * sws_context_;
-  rclcpp::Time first_image_timestamp_;
   std::mutex encode_mutex_;
+  bool first_image_received_;
+  std::chrono::steady_clock::time_point first_image_time_;
 
   std::string format_name_;
   std::string codec_name_;
