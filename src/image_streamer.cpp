@@ -44,7 +44,7 @@ namespace web_video_server
 ImageStreamer::ImageStreamer(
   const async_web_server_cpp::HttpRequest & request,
   async_web_server_cpp::HttpConnectionPtr connection, rclcpp::Node::SharedPtr node)
-: request_(request), connection_(connection), node_(node), inactive_(false)
+: connection_(connection), request_(request), node_(node), inactive_(false)
 {
   topic_ = request.get_query_param_value_or_default("topic", "");
 }

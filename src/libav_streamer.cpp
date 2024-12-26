@@ -44,9 +44,9 @@ LibavStreamer::LibavStreamer(
   const std::string & format_name, const std::string & codec_name,
   const std::string & content_type)
 : ImageTransportImageStreamer(request, connection, node), format_context_(0), codec_(0),
-  codec_context_(0), video_stream_(0), frame_(0), sws_context_(0),
+  codec_context_(0), video_stream_(0), opt_(0), frame_(0), sws_context_(0),
   first_image_received_(false), first_image_time_(), format_name_(format_name),
-  codec_name_(codec_name), content_type_(content_type), opt_(0), io_buffer_(0)
+  codec_name_(codec_name), content_type_(content_type), io_buffer_(0)
 {
   bitrate_ = request.get_query_param_value_or_default<int>("bitrate", 100000);
   qmin_ = request.get_query_param_value_or_default<int>("qmin", 10);
@@ -87,7 +87,7 @@ static int dispatch_output_packet(void * opaque, uint8_t * buffer, int buffer_si
   return 0;
 }
 
-void LibavStreamer::initialize(const cv::Mat & img)
+void LibavStreamer::initialize(const cv::Mat & /* img */)
 {
   // Load format
   format_context_ = avformat_alloc_context();
@@ -274,9 +274,6 @@ void LibavStreamer::sendImage(
   }
 
   if (got_packet) {
-    std::size_t size;
-    uint8_t * output_buf;
-
     double seconds = std::chrono::duration_cast<std::chrono::duration<double>>(
       time - first_image_time_).count();
     // Encode video at 1/0.95 to minimize delay

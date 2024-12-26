@@ -38,7 +38,7 @@ MultipartStream::MultipartStream(
   async_web_server_cpp::HttpConnectionPtr & connection,
   const std::string & boundry,
   std::size_t max_queue_size)
-: connection_(connection), boundry_(boundry), max_queue_size_(max_queue_size)
+: max_queue_size_(max_queue_size), connection_(connection), boundry_(boundry)
 {}
 
 void MultipartStream::sendInitialHeader()

@@ -212,8 +212,8 @@ bool WebVideoServer::handle_stream(
 
 bool WebVideoServer::handle_snapshot(
   const async_web_server_cpp::HttpRequest & request,
-  async_web_server_cpp::HttpConnectionPtr connection, const char * begin,
-  const char * end)
+  async_web_server_cpp::HttpConnectionPtr connection, const char * /* begin */,
+  const char * /* end */)
 {
   std::shared_ptr<ImageStreamer> streamer = std::make_shared<JpegSnapshotStreamer>(
     request, connection, shared_from_this());
@@ -278,9 +278,9 @@ bool WebVideoServer::handle_stream_viewer(
 }
 
 bool WebVideoServer::handle_list_streams(
-  const async_web_server_cpp::HttpRequest & request,
-  async_web_server_cpp::HttpConnectionPtr connection, const char * begin,
-  const char * end)
+  const async_web_server_cpp::HttpRequest & /* request */,
+  async_web_server_cpp::HttpConnectionPtr connection, const char * /* begin */,
+  const char * /* end */)
 {
   std::vector<std::string> image_topics;
   std::vector<std::string> camera_info_topics;
