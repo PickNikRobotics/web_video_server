@@ -37,6 +37,7 @@
 #endif
 
 #include <iostream>
+#include <regex>
 
 namespace web_video_server
 {
@@ -46,7 +47,7 @@ ImageStreamer::ImageStreamer(
   async_web_server_cpp::HttpConnectionPtr connection, rclcpp::Node::SharedPtr node)
 : request_(request), connection_(connection), node_(node), inactive_(false)
 {
-  topic_ = request.get_query_param_value_or_default("topic", "");
+  topic_ = std::regex_replace(request.get_query_param_value_or_default("topic", ""), std::regex(R"(%2F)"), "/");
 }
 
 ImageStreamer::~ImageStreamer()

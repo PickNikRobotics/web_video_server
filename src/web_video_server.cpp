@@ -32,6 +32,7 @@
 
 #include <chrono>
 #include <vector>
+#include <regex>
 
 #include <boost/algorithm/string/predicate.hpp>
 #include <opencv2/opencv.hpp>
@@ -172,7 +173,7 @@ bool WebVideoServer::handle_stream(
 {
   std::string type = request.get_query_param_value_or_default("type", default_stream_type_);
   if (stream_types_.find(type) != stream_types_.end()) {
-    std::string topic = request.get_query_param_value_or_default("topic", "");
+    std::string topic = std::regex_replace(request.get_query_param_value_or_default("topic", ""), std::regex(R"(%2F)"), "/");
     // Fallback for topics without corresponding compressed topics
     if (type == std::string("ros_compressed")) {
       std::string compressed_topic_name = topic + "/compressed";
