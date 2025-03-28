@@ -58,23 +58,20 @@ std::optional<rmw_qos_profile_t> ImageTransportImageStreamer::detect_publisher_q
   // Convert rclcpp QoS to rmw QoS profile.
   rmw_qos_profile_t rmw_qos = rmw_qos_profile_default;
 
+  // Set defaults
+  rmw_qos.reliability = RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
+  rmw_qos.durability = RMW_QOS_POLICY_DURABILITY_VOLATILE;
+  rmw_qos.history = RMW_QOS_POLICY_HISTORY_KEEP_LAST;
+  rmw_qos.depth = qos_profile.depth();
+
   // Set reliability
   if (qos_profile.reliability() == rclcpp::ReliabilityPolicy::Reliable) {
     rmw_qos.reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
-  } else {
-    rmw_qos.reliability = RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
   }
-
   // Set durability
   if (qos_profile.durability() == rclcpp::DurabilityPolicy::TransientLocal) {
     rmw_qos.durability = RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL;
-  } else {
-    rmw_qos.durability = RMW_QOS_POLICY_DURABILITY_VOLATILE;
   }
-
-  // Set history policy and depth
-  rmw_qos.history = RMW_QOS_POLICY_HISTORY_KEEP_LAST;
-  rmw_qos.depth = qos_profile.depth();
 
   return rmw_qos;
 }
