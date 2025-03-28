@@ -3,11 +3,9 @@
 
 #include "web_video_server/utils.h"
 #include <string>
-#include <optional>
 #include <image_transport/image_transport.hpp>
 #include <image_transport/transport_hints.hpp>
 #include <opencv2/opencv.hpp>
-#include "web_video_server/utils.h"
 #include "async_web_server_cpp/http_server.hpp"
 #include "async_web_server_cpp/http_request.hpp"
 
@@ -81,38 +79,6 @@ private:
   bool initialized_;
 
   void imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr &msg);
-
-  /**
-   * @brief Detects QoS profile settings used by publishers on a specified topic.
-   * 
-   * This function queries the ROS2 middleware to discover publishers on the 
-   * given topic and extracts their QoS profile settings. It's useful for 
-   * creating subscribers that automatically match the publisher's QoS.
-   * 
-   * @param nh The ROS2 node.
-   * @param topic The full name of the topic to query.
-   *
-   * @return The detected QoS profile if a publisher is found, std::nullopt otherwise
-   */
-  static std::optional<rmw_qos_profile_t> detect_publisher_qos(rclcpp::Node::SharedPtr nh,
-                                                               const std::string &topic);
-
-  /**
-   * @brief Get QoS profile based on user selection or auto-detect.
-   * 
-   * If the profile name is "auto" (the default one), this function queries the ROS2
-   * middleware to discover publishers on the given topic and extracts their QoS
-   * profile settings. Otherwise it returns a profile based on the given name.
-   * 
-   * @param nh The ROS2 node.
-   * @param profile_name The QoS profile name e.g. "auto" or "default".
-   * @param topic The full name of the topic to query.
-   *
-   * @return The detected QoS profile if a publisher is found, std::nullopt otherwise
-   */
-  static std::optional<rmw_qos_profile_t> get_qos_profile(rclcpp::Node::SharedPtr nh, 
-                                                          const std::string &profile_name, 
-                                                          const std::string& topic);
 };
 
 class ImageStreamerType

@@ -1,38 +1,25 @@
+
 #include "web_video_server/image_streamer.h"
 #include <cv_bridge/cv_bridge.h>
 #include <iostream>
+#include <optional>
 
-namespace web_video_server
+namespace
 {
-
-ImageStreamer::ImageStreamer(const async_web_server_cpp::HttpRequest &request,
-                             async_web_server_cpp::HttpConnectionPtr connection, rclcpp::Node::SharedPtr nh) :
-    request_(request), connection_(connection), nh_(nh), inactive_(false)
-{
-  topic_ = request.get_query_param_value_or_default("topic", "");
-}
-
-ImageStreamer::~ImageStreamer()
-{
-}
-
-ImageTransportImageStreamer::ImageTransportImageStreamer(const async_web_server_cpp::HttpRequest &request,
-                             async_web_server_cpp::HttpConnectionPtr connection, rclcpp::Node::SharedPtr nh) :
-  ImageStreamer(request, connection, nh), it_(nh), initialized_(false)
-{
-  output_width_ = request.get_query_param_value_or_default<int>("width", -1);
-  output_height_ = request.get_query_param_value_or_default<int>("height", -1);
-  invert_ = request.has_query_param("invert");
-  default_transport_ = request.get_query_param_value_or_default("default_transport", "raw");
-  qos_profile_name_ = request.get_query_param_value_or_default("qos_profile", "auto");
-}
-
-ImageTransportImageStreamer::~ImageTransportImageStreamer()
-{
-}
-
-std::optional<rmw_qos_profile_t> ImageTransportImageStreamer::detect_publisher_qos(rclcpp::Node::SharedPtr nh, 
-                                                                                   const std::string &topic) 
+/**
+ * @brief Detects QoS profile settings used by publishers on a specified topic.
+ * 
+ * This function queries the ROS2 middleware to discover publishers on the 
+ * given topic and extracts their QoS profile settings. It's useful for 
+ * creating subscribers that automatically match the publisher's QoS.
+ * 
+ * @param nh The ROS2 node.
+ * @param topic The full name of the topic to query.
+ *
+ * @return The detected QoS profile if a publisher is found, std::nullopt otherwise
+ */
+std::optional<rmw_qos_profile_t> detect_publisher_qos(rclcpp::Node::SharedPtr nh, 
+                                                      const std::string &topic) 
 {
   RCLCPP_INFO(nh->get_logger(), "Attempting to auto-detect QoS for topic: %s", topic.c_str());
 
@@ -76,9 +63,22 @@ std::optional<rmw_qos_profile_t> ImageTransportImageStreamer::detect_publisher_q
   return rmw_qos;
 }
 
-std::optional<rmw_qos_profile_t> ImageTransportImageStreamer::get_qos_profile(rclcpp::Node::SharedPtr nh, 
-                                                                              const  std::string &profile_name, 
-                                                                              const std::string& topic) {
+/**
+ * @brief Get QoS profile based on user selection or auto-detect.
+ * 
+ * If the profile name is "auto" (the default one), this function queries the ROS2
+ * middleware to discover publishers on the given topic and extracts their QoS
+ * profile settings. Otherwise it returns a profile based on the given name.
+ * 
+ * @param nh The ROS2 node.
+ * @param profile_name The QoS profile name e.g. "auto" or "default".
+ * @param topic The full name of the topic to query.
+ *
+ * @return The detected QoS profile if a publisher is found, std::nullopt otherwise
+ */
+std::optional<rmw_qos_profile_t> get_qos_profile(rclcpp::Node::SharedPtr nh, 
+                                                 const  std::string &profile_name, 
+                                                 const std::string& topic) {
   std::optional<rmw_qos_profile_t> qos_profile;
   if (profile_name == "auto") {
     // Auto-detect QoS from publisher
@@ -93,7 +93,7 @@ std::optional<rmw_qos_profile_t> ImageTransportImageStreamer::get_qos_profile(rc
     // Use named profile
     RCLCPP_INFO(nh->get_logger(), "Using specified QoS profile %s for topic %s", profile_name.c_str(),
                 topic.c_str());
-    qos_profile = get_qos_profile_from_name(profile_name);
+    qos_profile = web_video_server::get_qos_profile_from_name(profile_name);
     if (!qos_profile) {
       qos_profile = rmw_qos_profile_default;
       RCLCPP_ERROR(nh->get_logger(), "Invalid QoS profile %s specified. Using default profile.",
@@ -102,6 +102,36 @@ std::optional<rmw_qos_profile_t> ImageTransportImageStreamer::get_qos_profile(rc
   }
   return qos_profile;
 
+}
+}
+
+namespace web_video_server
+{
+
+ImageStreamer::ImageStreamer(const async_web_server_cpp::HttpRequest &request,
+                             async_web_server_cpp::HttpConnectionPtr connection, rclcpp::Node::SharedPtr nh) :
+    request_(request), connection_(connection), nh_(nh), inactive_(false)
+{
+  topic_ = request.get_query_param_value_or_default("topic", "");
+}
+
+ImageStreamer::~ImageStreamer()
+{
+}
+
+ImageTransportImageStreamer::ImageTransportImageStreamer(const async_web_server_cpp::HttpRequest &request,
+                             async_web_server_cpp::HttpConnectionPtr connection, rclcpp::Node::SharedPtr nh) :
+  ImageStreamer(request, connection, nh), it_(nh), initialized_(false)
+{
+  output_width_ = request.get_query_param_value_or_default<int>("width", -1);
+  output_height_ = request.get_query_param_value_or_default<int>("height", -1);
+  invert_ = request.has_query_param("invert");
+  default_transport_ = request.get_query_param_value_or_default("default_transport", "raw");
+  qos_profile_name_ = request.get_query_param_value_or_default("qos_profile", "auto");
+}
+
+ImageTransportImageStreamer::~ImageTransportImageStreamer()
+{
 }
 
 void ImageTransportImageStreamer::start()
