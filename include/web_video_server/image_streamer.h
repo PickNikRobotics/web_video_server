@@ -2,6 +2,8 @@
 #define IMAGE_STREAMER_H_
 
 #include "web_video_server/utils.h"
+#include <string>
+#include <optional>
 #include <image_transport/image_transport.hpp>
 #include <image_transport/transport_hints.hpp>
 #include <opencv2/opencv.hpp>
