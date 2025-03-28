@@ -47,9 +47,9 @@ std::optional<rmw_qos_profile_t> ImageTransportImageStreamer::detect_publisher_q
   auto qos_profile = endpoint_info.qos_profile();
 
   // Log the detected QoS settings.
-  std::string reliability =
+  const std::string reliability =
       (qos_profile.reliability() == rclcpp::ReliabilityPolicy::Reliable) ? "RELIABLE" : "BEST_EFFORT";
-  std::string durability =
+  const std::string durability =
       (qos_profile.durability() == rclcpp::DurabilityPolicy::TransientLocal) ? "TRANSIENT_LOCAL" : "VOLATILE";
 
   RCLCPP_INFO(nh->get_logger(), "Detected QoS - Reliability: %s, Durability: %s, History depth: %zu",
@@ -125,7 +125,7 @@ void ImageTransportImageStreamer::start()
   }
 
   // Get QoS profile based on user selection or auto-detect.
-  std::optional<rmw_qos_profile_t> qos_profile = get_qos_profile(nh_, qos_profile_name_, topic_);
+  const auto qos_profile = get_qos_profile(nh_, qos_profile_name_, topic_);
 
   // Create subscriber
   using std::placeholders::_1;
