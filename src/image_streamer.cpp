@@ -43,8 +43,8 @@ std::optional<rmw_qos_profile_t> ImageTransportImageStreamer::detect_publisher_q
   }
 
   // Use the first publisher's QoS as reference.
-  auto endpoint_info = topic_endpoint_info_array.front();
-  auto qos_profile = endpoint_info.qos_profile();
+  const auto endpoint_info = topic_endpoint_info_array.front();
+  const auto qos_profile = endpoint_info.qos_profile();
 
   // Log the detected QoS settings.
   std::string reliability =
