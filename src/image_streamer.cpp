@@ -56,7 +56,7 @@ std::optional<rmw_qos_profile_t> ImageTransportImageStreamer::detect_publisher_q
               reliability.c_str(), durability.c_str(), qos_profile.depth());
 
   // Convert rclcpp QoS to rmw QoS profile.
-  rmw_qos_profile_t rmw_qos = rmw_qos_profile_default;
+  auto rmw_qos = rmw_qos_profile_default;
 
   // Set defaults
   rmw_qos.reliability = RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
