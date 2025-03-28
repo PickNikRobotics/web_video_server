@@ -1,6 +1,109 @@
+
 #include "web_video_server/image_streamer.h"
 #include <cv_bridge/cv_bridge.h>
 #include <iostream>
+#include <optional>
+
+namespace
+{
+/**
+ * @brief Detects QoS profile settings used by publishers on a specified topic.
+ * 
+ * This function queries the ROS2 middleware to discover publishers on the 
+ * given topic and extracts their QoS profile settings. It's useful for 
+ * creating subscribers that automatically match the publisher's QoS.
+ * 
+ * @param nh The ROS2 node.
+ * @param topic The full name of the topic to query.
+ *
+ * @return The detected QoS profile if a publisher is found, std::nullopt otherwise
+ */
+std::optional<rmw_qos_profile_t> detect_publisher_qos(rclcpp::Node::SharedPtr nh, 
+                                                      const std::string &topic) 
+{
+  RCLCPP_INFO(nh->get_logger(), "Attempting to auto-detect QoS for topic: %s", topic.c_str());
+
+  const auto topic_endpoint_info_array = nh->get_publishers_info_by_topic(topic);
+  if (topic_endpoint_info_array.empty()) {
+    RCLCPP_WARN(nh->get_logger(), "No publishers found for topic: %s", topic.c_str());
+    return std::nullopt;
+  }
+
+  // Use the first publisher's QoS as reference.
+  const auto endpoint_info = topic_endpoint_info_array.front();
+  const auto qos_profile = endpoint_info.qos_profile();
+
+  // Log the detected QoS settings.
+  const std::string reliability =
+      (qos_profile.reliability() == rclcpp::ReliabilityPolicy::Reliable) ? "RELIABLE" : "BEST_EFFORT";
+  const std::string durability =
+      (qos_profile.durability() == rclcpp::DurabilityPolicy::TransientLocal) ? "TRANSIENT_LOCAL" : "VOLATILE";
+
+  RCLCPP_INFO(nh->get_logger(), "Detected QoS - Reliability: %s, Durability: %s, History depth: %zu",
+              reliability.c_str(), durability.c_str(), qos_profile.depth());
+
+  // Convert rclcpp QoS to rmw QoS profile.
+  auto rmw_qos = rmw_qos_profile_default;
+
+  // Set defaults
+  rmw_qos.reliability = RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT;
+  rmw_qos.durability = RMW_QOS_POLICY_DURABILITY_VOLATILE;
+  rmw_qos.history = RMW_QOS_POLICY_HISTORY_KEEP_LAST;
+  rmw_qos.depth = qos_profile.depth();
+
+  // Set reliability
+  if (qos_profile.reliability() == rclcpp::ReliabilityPolicy::Reliable) {
+    rmw_qos.reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
+  }
+  // Set durability
+  if (qos_profile.durability() == rclcpp::DurabilityPolicy::TransientLocal) {
+    rmw_qos.durability = RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL;
+  }
+
+  return rmw_qos;
+}
+
+/**
+ * @brief Get QoS profile based on user selection or auto-detect.
+ * 
+ * If the profile name is "auto" (the default one), this function queries the ROS2
+ * middleware to discover publishers on the given topic and extracts their QoS
+ * profile settings. Otherwise it returns a profile based on the given name.
+ * 
+ * @param nh The ROS2 node.
+ * @param profile_name The QoS profile name e.g. "auto" or "default".
+ * @param topic The full name of the topic to query.
+ *
+ * @return The detected QoS profile if a publisher is found, std::nullopt otherwise
+ */
+std::optional<rmw_qos_profile_t> get_qos_profile(rclcpp::Node::SharedPtr nh, 
+                                                 const  std::string &profile_name, 
+                                                 const std::string& topic) {
+  std::optional<rmw_qos_profile_t> qos_profile;
+  if (profile_name == "auto") {
+    // Auto-detect QoS from publisher
+    qos_profile = detect_publisher_qos(nh, topic);
+    if (!qos_profile) {
+      RCLCPP_WARN(nh->get_logger(), "Could not auto-detect QoS for topic %s. Using default profile.", topic.c_str());
+      qos_profile = rmw_qos_profile_default;
+    } else {
+      RCLCPP_INFO(nh->get_logger(), "Using auto-detected QoS profile for topic %s", topic.c_str());
+    }
+  } else {
+    // Use named profile
+    RCLCPP_INFO(nh->get_logger(), "Using specified QoS profile %s for topic %s", profile_name.c_str(),
+                topic.c_str());
+    qos_profile = web_video_server::get_qos_profile_from_name(profile_name);
+    if (!qos_profile) {
+      qos_profile = rmw_qos_profile_default;
+      RCLCPP_ERROR(nh->get_logger(), "Invalid QoS profile %s specified. Using default profile.",
+                   profile_name.c_str());
+    }
+  }
+  return qos_profile;
+
+}
+}
 
 namespace web_video_server
 {
@@ -24,7 +127,7 @@ ImageTransportImageStreamer::ImageTransportImageStreamer(const async_web_server_
   output_height_ = request.get_query_param_value_or_default<int>("height", -1);
   invert_ = request.has_query_param("invert");
   default_transport_ = request.get_query_param_value_or_default("default_transport", "raw");
-  qos_profile_name_ = request.get_query_param_value_or_default("qos_profile", "default");
+  qos_profile_name_ = request.get_query_param_value_or_default("qos_profile", "auto");
 }
 
 ImageTransportImageStreamer::~ImageTransportImageStreamer()
@@ -48,16 +151,8 @@ void ImageTransportImageStreamer::start()
     }
   }
 
-  // Get QoS profile from query parameter
-  RCLCPP_INFO(nh_->get_logger(), "Streaming topic %s with QoS profile %s", topic_.c_str(), qos_profile_name_.c_str());
-  auto qos_profile = get_qos_profile_from_name(qos_profile_name_);
-  if (!qos_profile) {
-    qos_profile = rmw_qos_profile_default;
-    RCLCPP_ERROR(
-      nh_->get_logger(),
-      "Invalid QoS profile %s specified. Using default profile.",
-      qos_profile_name_.c_str());
-  }
+  // Get QoS profile based on user selection or auto-detect.
+  const auto qos_profile = get_qos_profile(nh_, qos_profile_name_, topic_);
 
   // Create subscriber
   using std::placeholders::_1;
