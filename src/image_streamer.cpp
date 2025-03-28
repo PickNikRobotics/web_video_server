@@ -36,15 +36,15 @@ std::optional<rmw_qos_profile_t> ImageTransportImageStreamer::detect_publisher_q
 {
   RCLCPP_INFO(nh->get_logger(), "Attempting to auto-detect QoS for topic: %s", topic.c_str());
 
-  auto topic_endpoint_info_array = nh->get_publishers_info_by_topic(topic);
+  const auto topic_endpoint_info_array = nh->get_publishers_info_by_topic(topic);
   if (topic_endpoint_info_array.empty()) {
     RCLCPP_WARN(nh->get_logger(), "No publishers found for topic: %s", topic.c_str());
     return std::nullopt;
   }
 
   // Use the first publisher's QoS as reference.
-  auto endpoint_info = topic_endpoint_info_array.front();
-  auto qos_profile = endpoint_info.qos_profile();
+  const auto endpoint_info = topic_endpoint_info_array.front();
+  const auto qos_profile = endpoint_info.qos_profile();
 
   // Log the detected QoS settings.
   const std::string reliability =
