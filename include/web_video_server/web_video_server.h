@@ -2,19 +2,12 @@
 #define WEB_VIDEO_SERVER_H_
 
 #include <rclcpp/rclcpp.hpp>
-
-// NOTE: include guard for Humble backwards compatibility
-#if __has_include(<cv_bridge/cv_bridge.hpp>)
-#include <cv_bridge/cv_bridge.hpp>
-#else
 #include <cv_bridge/cv_bridge.h>
-#endif
-
 #include <vector>
-#include "async_web_server_cpp/http_connection.hpp"
-#include "async_web_server_cpp/http_request.hpp"
-#include "async_web_server_cpp/http_server.hpp"
 #include "web_video_server/image_streamer.h"
+#include "async_web_server_cpp/http_server.hpp"
+#include "async_web_server_cpp/http_request.hpp"
+#include "async_web_server_cpp/http_connection.hpp"
 
 namespace web_video_server
 {
@@ -30,7 +23,7 @@ public:
    * @brief  Constructor
    * @return
    */
-  WebVideoServer(rclcpp::Node::SharedPtr& nh, rclcpp::Node::SharedPtr& private_nh);
+  WebVideoServer(rclcpp::Node::SharedPtr &nh, rclcpp::Node::SharedPtr &private_nh);
 
   /**
    * @brief  Destructor - Cleans up
@@ -44,16 +37,16 @@ public:
 
   void setup_cleanup_inactive_streams();
 
-  bool handle_stream(const async_web_server_cpp::HttpRequest& request,
+  bool handle_stream(const async_web_server_cpp::HttpRequest &request,
                      async_web_server_cpp::HttpConnectionPtr connection, const char* begin, const char* end);
 
-  bool handle_stream_viewer(const async_web_server_cpp::HttpRequest& request,
+  bool handle_stream_viewer(const async_web_server_cpp::HttpRequest &request,
                             async_web_server_cpp::HttpConnectionPtr connection, const char* begin, const char* end);
 
-  bool handle_snapshot(const async_web_server_cpp::HttpRequest& request,
+  bool handle_snapshot(const async_web_server_cpp::HttpRequest &request,
                        async_web_server_cpp::HttpConnectionPtr connection, const char* begin, const char* end);
 
-  bool handle_list_streams(const async_web_server_cpp::HttpRequest& request,
+  bool handle_list_streams(const async_web_server_cpp::HttpRequest &request,
                            async_web_server_cpp::HttpConnectionPtr connection, const char* begin, const char* end);
 
 private:
@@ -74,6 +67,6 @@ private:
   boost::mutex subscriber_mutex_;
 };
 
-}  // namespace web_video_server
+}
 
 #endif
