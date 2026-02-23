@@ -1,6 +1,11 @@
 
 #include "web_video_server/image_streamer.h"
+// NOTE: include guard for Humble backwards compatibility
+#if __has_include(<cv_bridge/cv_bridge.hpp>)
+#include <cv_bridge/cv_bridge.hpp>
+#else
 #include <cv_bridge/cv_bridge.h>
+#endif
 #include <iostream>
 #include <optional>
 
@@ -8,23 +13,23 @@ namespace
 {
 /**
  * @brief Detects QoS profile settings used by publishers on a specified topic.
- * 
- * This function queries the ROS2 middleware to discover publishers on the 
- * given topic and extracts their QoS profile settings. It's useful for 
+ *
+ * This function queries the ROS2 middleware to discover publishers on the
+ * given topic and extracts their QoS profile settings. It's useful for
  * creating subscribers that automatically match the publisher's QoS.
- * 
+ *
  * @param nh The ROS2 node.
  * @param topic The full name of the topic to query.
  *
  * @return The detected QoS profile if a publisher is found, std::nullopt otherwise
  */
-std::optional<rmw_qos_profile_t> detect_publisher_qos(rclcpp::Node::SharedPtr nh, 
-                                                      const std::string &topic) 
+std::optional<rmw_qos_profile_t> detect_publisher_qos(rclcpp::Node::SharedPtr nh, const std::string& topic)
 {
   RCLCPP_INFO(nh->get_logger(), "Attempting to auto-detect QoS for topic: %s", topic.c_str());
 
   const auto topic_endpoint_info_array = nh->get_publishers_info_by_topic(topic);
-  if (topic_endpoint_info_array.empty()) {
+  if (topic_endpoint_info_array.empty())
+  {
     RCLCPP_WARN(nh->get_logger(), "No publishers found for topic: %s", topic.c_str());
     return std::nullopt;
   }
@@ -52,11 +57,13 @@ std::optional<rmw_qos_profile_t> detect_publisher_qos(rclcpp::Node::SharedPtr nh
   rmw_qos.depth = qos_profile.depth();
 
   // Set reliability
-  if (qos_profile.reliability() == rclcpp::ReliabilityPolicy::Reliable) {
+  if (qos_profile.reliability() == rclcpp::ReliabilityPolicy::Reliable)
+  {
     rmw_qos.reliability = RMW_QOS_POLICY_RELIABILITY_RELIABLE;
   }
   // Set durability
-  if (qos_profile.durability() == rclcpp::DurabilityPolicy::TransientLocal) {
+  if (qos_profile.durability() == rclcpp::DurabilityPolicy::TransientLocal)
+  {
     rmw_qos.durability = RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL;
   }
 
@@ -65,52 +72,56 @@ std::optional<rmw_qos_profile_t> detect_publisher_qos(rclcpp::Node::SharedPtr nh
 
 /**
  * @brief Get QoS profile based on user selection or auto-detect.
- * 
+ *
  * If the profile name is "auto" (the default one), this function queries the ROS2
  * middleware to discover publishers on the given topic and extracts their QoS
  * profile settings. Otherwise it returns a profile based on the given name.
- * 
+ *
  * @param nh The ROS2 node.
  * @param profile_name The QoS profile name e.g. "auto" or "default".
  * @param topic The full name of the topic to query.
  *
  * @return The detected QoS profile if a publisher is found, std::nullopt otherwise
  */
-std::optional<rmw_qos_profile_t> get_qos_profile(rclcpp::Node::SharedPtr nh, 
-                                                 const  std::string &profile_name, 
-                                                 const std::string& topic) {
+std::optional<rmw_qos_profile_t> get_qos_profile(rclcpp::Node::SharedPtr nh, const std::string& profile_name,
+                                                 const std::string& topic)
+{
   std::optional<rmw_qos_profile_t> qos_profile;
-  if (profile_name == "auto") {
+  if (profile_name == "auto")
+  {
     // Auto-detect QoS from publisher
     qos_profile = detect_publisher_qos(nh, topic);
-    if (!qos_profile) {
+    if (!qos_profile)
+    {
       RCLCPP_WARN(nh->get_logger(), "Could not auto-detect QoS for topic %s. Using default profile.", topic.c_str());
       qos_profile = rmw_qos_profile_default;
-    } else {
+    }
+    else
+    {
       RCLCPP_INFO(nh->get_logger(), "Using auto-detected QoS profile for topic %s", topic.c_str());
     }
-  } else {
+  }
+  else
+  {
     // Use named profile
-    RCLCPP_INFO(nh->get_logger(), "Using specified QoS profile %s for topic %s", profile_name.c_str(),
-                topic.c_str());
+    RCLCPP_INFO(nh->get_logger(), "Using specified QoS profile %s for topic %s", profile_name.c_str(), topic.c_str());
     qos_profile = web_video_server::get_qos_profile_from_name(profile_name);
-    if (!qos_profile) {
+    if (!qos_profile)
+    {
       qos_profile = rmw_qos_profile_default;
-      RCLCPP_ERROR(nh->get_logger(), "Invalid QoS profile %s specified. Using default profile.",
-                   profile_name.c_str());
+      RCLCPP_ERROR(nh->get_logger(), "Invalid QoS profile %s specified. Using default profile.", profile_name.c_str());
     }
   }
   return qos_profile;
-
 }
-}
+}  // namespace
 
 namespace web_video_server
 {
 
-ImageStreamer::ImageStreamer(const async_web_server_cpp::HttpRequest &request,
-                             async_web_server_cpp::HttpConnectionPtr connection, rclcpp::Node::SharedPtr nh) :
-    request_(request), connection_(connection), nh_(nh), inactive_(false)
+ImageStreamer::ImageStreamer(const async_web_server_cpp::HttpRequest& request,
+                             async_web_server_cpp::HttpConnectionPtr connection, rclcpp::Node::SharedPtr nh)
+  : request_(request), connection_(connection), nh_(nh), inactive_(false)
 {
   topic_ = request.get_query_param_value_or_default("topic", "");
 }
@@ -119,9 +130,10 @@ ImageStreamer::~ImageStreamer()
 {
 }
 
-ImageTransportImageStreamer::ImageTransportImageStreamer(const async_web_server_cpp::HttpRequest &request,
-                             async_web_server_cpp::HttpConnectionPtr connection, rclcpp::Node::SharedPtr nh) :
-  ImageStreamer(request, connection, nh), it_(nh), initialized_(false)
+ImageTransportImageStreamer::ImageTransportImageStreamer(const async_web_server_cpp::HttpRequest& request,
+                                                         async_web_server_cpp::HttpConnectionPtr connection,
+                                                         rclcpp::Node::SharedPtr nh)
+  : ImageStreamer(request, connection, nh), it_(nh), initialized_(false)
 {
   output_width_ = request.get_query_param_value_or_default<int>("width", -1);
   output_height_ = request.get_query_param_value_or_default<int>("height", -1);
@@ -139,13 +151,16 @@ void ImageTransportImageStreamer::start()
   image_transport::TransportHints hints(nh_.get(), default_transport_);
   auto tnat = nh_->get_topic_names_and_types();
   inactive_ = true;
-  for (auto topic_and_types : tnat) {
-    if (topic_and_types.second.size() > 1) {
+  for (auto topic_and_types : tnat)
+  {
+    if (topic_and_types.second.size() > 1)
+    {
       // explicitly avoid topics with more than one type
       break;
     }
-    auto & topic_name = topic_and_types.first;
-    if(topic_name == topic_ || (topic_name.find("/") == 0 && topic_name.substr(1) == topic_)){
+    auto& topic_name = topic_and_types.first;
+    if (topic_name == topic_ || (topic_name.find("/") == 0 && topic_name.substr(1) == topic_))
+    {
       inactive_ = false;
       break;
     }
@@ -156,33 +171,35 @@ void ImageTransportImageStreamer::start()
 
   // Create subscriber
   using std::placeholders::_1;
-  image_sub_ = image_transport::create_subscription(
-      nh_.get(), topic_, std::bind(&ImageTransportImageStreamer::imageCallback, this, _1),
-      default_transport_, qos_profile.value());
+  image_sub_ = image_transport::create_subscription(nh_.get(), topic_,
+                                                    std::bind(&ImageTransportImageStreamer::imageCallback, this, _1),
+                                                    default_transport_, qos_profile.value());
 }
 
-void ImageTransportImageStreamer::initialize(const cv::Mat &)
+void ImageTransportImageStreamer::initialize(const cv::Mat&)
 {
 }
 
 void ImageTransportImageStreamer::restreamFrame(double max_age)
 {
-  if (inactive_ || !initialized_ )
+  if (inactive_ || !initialized_)
     return;
-  try {
-    if ( last_frame + rclcpp::Duration::from_seconds(max_age) < nh_->now() ) {
+  try
+  {
+    if (last_frame + rclcpp::Duration::from_seconds(max_age) < nh_->now())
+    {
       boost::mutex::scoped_lock lock(send_mutex_);
-      sendImage(output_size_image, nh_->now() ); // don't update last_frame, it may remain an old value.
+      sendImage(output_size_image, nh_->now());  // don't update last_frame, it may remain an old value.
     }
   }
-  catch (boost::system::system_error &e)
+  catch (boost::system::system_error& e)
   {
     // happens when client disconnects
     RCLCPP_DEBUG(nh_->get_logger(), "system_error exception: %s", e.what());
     inactive_ = true;
     return;
   }
-  catch (std::exception &e)
+  catch (std::exception& e)
   {
     // TODO THROTTLE with 30
     RCLCPP_ERROR(nh_->get_logger(), "exception: %s", e.what());
@@ -198,7 +215,7 @@ void ImageTransportImageStreamer::restreamFrame(double max_age)
   }
 }
 
-void ImageTransportImageStreamer::imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr &msg)
+void ImageTransportImageStreamer::imageCallback(const sensor_msgs::msg::Image::ConstSharedPtr& msg)
 {
   if (inactive_)
     return;
@@ -241,7 +258,7 @@ void ImageTransportImageStreamer::imageCallback(const sensor_msgs::msg::Image::C
       cv::flip(img, img, true);
     }
 
-    boost::mutex::scoped_lock lock(send_mutex_); // protects output_size_image
+    boost::mutex::scoped_lock lock(send_mutex_);  // protects output_size_image
     if (output_width_ != input_width || output_height_ != input_height)
     {
       cv::Mat img_resized;
@@ -261,31 +278,30 @@ void ImageTransportImageStreamer::imageCallback(const sensor_msgs::msg::Image::C
     }
 
     last_frame = nh_->now();
-    sendImage(output_size_image, last_frame );
-
+    sendImage(output_size_image, last_frame);
   }
-  catch (cv_bridge::Exception &e)
+  catch (cv_bridge::Exception& e)
   {
     // TODO THROTTLE with 30
     RCLCPP_ERROR(nh_->get_logger(), "cv_bridge exception: %s", e.what());
     inactive_ = true;
     return;
   }
-  catch (cv::Exception &e)
+  catch (cv::Exception& e)
   {
     // TODO THROTTLE with 30
     RCLCPP_ERROR(nh_->get_logger(), "cv_bridge exception: %s", e.what());
     inactive_ = true;
     return;
   }
-  catch (boost::system::system_error &e)
+  catch (boost::system::system_error& e)
   {
     // happens when client disconnects
     RCLCPP_DEBUG(nh_->get_logger(), "system_error exception: %s", e.what());
     inactive_ = true;
     return;
   }
-  catch (std::exception &e)
+  catch (std::exception& e)
   {
     // TODO THROTTLE with 30
     RCLCPP_ERROR(nh_->get_logger(), "exception: %s", e.what());
@@ -301,4 +317,4 @@ void ImageTransportImageStreamer::imageCallback(const sensor_msgs::msg::Image::C
   }
 }
 
-}
+}  // namespace web_video_server
