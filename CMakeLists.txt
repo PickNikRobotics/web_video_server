@@ -19,12 +19,6 @@ find_package(sensor_msgs REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system)
 
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(avcodec libavcodec REQUIRED)
-pkg_check_modules(avformat libavformat REQUIRED)
-pkg_check_modules(avutil libavutil REQUIRED)
-pkg_check_modules(swscale libswscale REQUIRED)
-
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 14)
 endif()
@@ -69,23 +63,15 @@ target_link_libraries(${PROJECT_NAME}
 
 add_library(${PROJECT_NAME}_streamers SHARED
   src/streamers/image_transport_streamer.cpp
-  src/streamers/libav_streamer.cpp
-  src/streamers/h264_streamer.cpp
   src/streamers/jpeg_streamers.cpp
   src/streamers/png_streamers.cpp
   src/streamers/ros_compressed_streamer.cpp
-  src/streamers/vp8_streamer.cpp
-  src/streamers/vp9_streamer.cpp
 )
 
 target_include_directories(${PROJECT_NAME}_streamers
   PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
     "$<INSTALL_INTERFACE:include/${PROJECT_NAME}>"
-    ${avcodec_INCLUDE_DIRS}
-    ${avformat_INCLUDE_DIRS}
-    ${avutil_INCLUDE_DIRS}
-    ${swscale_INCLUDE_DIRS}
 )
 
 target_link_libraries(${PROJECT_NAME}_streamers
@@ -99,10 +85,6 @@ target_link_libraries(${PROJECT_NAME}_streamers
   Boost::boost
   Boost::system
   ${OpenCV_LIBS}
-  ${avcodec_LIBRARIES}
-  ${avformat_LIBRARIES}
-  ${avutil_LIBRARIES}
-  ${swscale_LIBRARIES}
 )
 
 ## Declare a cpp executable
